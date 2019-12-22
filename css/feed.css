@@ -2,7 +2,9 @@
 	font-size: 18px;
 }
 
-.gold-feed-container {
+.gold-feed-container, 
+.gold-feed-percentage,
+.gold-feed-rate {
     margin-left: 5px;
 }
 

@@ -25,8 +25,10 @@ Class LiveFeed {
     public function __construct() {
 
         $this->plugin_dir_url = plugin_dir_url(__FILE__);
+		$this->load_parser();
+        $this->updateRates();
 		$this->register_style();
-		$this->register_widget();
+        $this->register_widget();
         add_shortcode( 'live-Gold-Feed', array($this, 'live_gold_feed') );
 
     }
@@ -58,35 +60,126 @@ Class LiveFeed {
 
     }
 
-
     /**
      *  register the shortcode
      */
     public function live_gold_feed() { 
 
+        $data_array = unserialize(get_option('gold_widget_data'));
+
+        $rate = $data_array['rate'];
+		$operator = $data_array['operator'];
+		$difference_rate = $data_array['difference_rate'];
+        $value = $data_array['value'];
+
         echo '<div class="gold-feed-container">
             	<span class="gold-feed-title"> GOLD PRICE USD/OZ </span>
-                <small>
                 <span class="gold-feed-values-container">
-            		<span class="gold-feed-rate">$1546.72</span>
-                	<span class="gold-feed-mark"> <img src="'.$this->plugin_dir_url.'/img/fa-arrow-down.png" > </span>
-                	<span class="gold-feed-difference-rate gold-neg-val"> +17.32 </span>
-                	<span class="gold-feed-percentage gold-neg-val">16%</span>
+            		<span class="gold-feed-rate">'.$rate.'</span>
+                    <span class="gold-feed-mark"> <img src="'.$this->plugin_dir_url.'/img/fa-arrow-'. ( ($operator == 'pos') ? 'up' : 'down' ) .'.png" > </span>
+                	<span class="gold-feed-difference-rate gold-'.$operator.'-val"> '. ( ( $operator == 'pos' ) ? '+'.$difference_rate : $difference_rate ) .' </span>
+                	<span class="gold-feed-percentage gold-'.$operator.'-val">'. ( ( $operator == 'pos' ) ? '+'.$value : $value ) .'%</span>
                 </span>
-                </small>
         </div>';
 
     }
 
+    /**
+     * Dom parse required to scrap the data
+     */
+    public function load_parser() {
+		require('domparser/simple_html_dom.php');
+	}
+
+    /**
+     * Access domparse and hit request www.goldbroker.com to get record and save it in database
+     *
+     * @param   [type]  $action    [$action description]
+     * @param   [type]  $currency  [$currency description]
+     *
+     * @return  [type]             [return description]
+     */
+	public function updateRates() { 
+        
+        $update_in_database = false;
+        $data_array = get_option('gold_widget_data');
+        
+        if($data_array != false) {
+
+			$data_array = unserialize($data_array);
+
+			if(time() - $data_array['time'] >= 1800) {
+
+				$update_in_database = true;			
+
+			}
+
+		} else {
+
+			$update_in_database = true;			
+
+        }
+        
+        if($update_in_database == true) {
+
+
+			$ch = curl_init();
+			curl_setopt($ch, CURLOPT_URL, 'https://www.goldbroker.com/widget/live-price/XAU?currency=USD');
+			curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+			$output = curl_exec($ch);
+			curl_close($ch);
+
+			$domHtml = str_get_html($output);
+
+			$the_feed = str_replace( [' ', 'Gold', 'oz'] , ['', '', ''], $domHtml->find('div', 0)->plaintext);
+
+			$break_feed = explode('/', $the_feed);
+
+			$rate = $break_feed[0];
+			$value = $break_feed[1];
+
+
+			$percentageChange = (float) $value;
+
+			// Our original number.
+			$originalNumber = floatval(preg_replace('/[^\d.]/', '', $rate ));
+
+			// Get 2.25% of 100.
+			$numberToAdd = ($originalNumber / 100) * $percentageChange;
+			 
+			// Finish it up with some simple addition
+			$newNumber = $originalNumber + $numberToAdd;
+			 
+			// Result is 102.25
+			$difference_rate =  number_format((float)$newNumber - $originalNumber, 2, '.', '');
+
+			$operator = ($value >= 0) ? 'pos' : 'neg';
+
+			$data_array = serialize([
+				'rate' => $rate,
+				'operator' => $operator,
+				'difference_rate' => $difference_rate,
+				'value' => $value,
+				'time' => time()
+			]);
+
+			update_option('gold_widget_data', $data_array);
+
+		}
+
+    }
        
 }
 
 // widget class
 class Live_Gold_Feed_Widget extends WP_Widget { 
     
-    
+    public $plugin_dir_url;
+
     // class constructor
 	public function __construct() {
+
+        $this->plugin_dir_url = plugin_dir_url(__FILE__);
 
 		$widget_ops = array( 
 			'classname' => 'live_gold_feed_widget',
@@ -97,9 +190,25 @@ class Live_Gold_Feed_Widget extends WP_Widget {
     }
     
 	public function widget( $args, $instance ) { 
-        echo 'hello wordpress widget';
-    }
+        
+        $data_array = unserialize(get_option('gold_widget_data'));
 
+        $rate = $data_array['rate'];
+		$operator = $data_array['operator'];
+		$difference_rate = $data_array['difference_rate'];
+        $value = $data_array['value'];
+
+        echo '<div class="gold-feed-container">
+            	<span class="gold-feed-title"> GOLD PRICE USD/OZ </span>
+                <span class="gold-feed-values-container">
+            		<span class="gold-feed-rate">'.$rate.'</span>
+                    <span class="gold-feed-mark"> <img src="'.$this->plugin_dir_url.'/img/fa-arrow-'. ( ($operator == 'pos') ? 'up' : 'down' ) .'.png" > </span>
+                	<span class="gold-feed-difference-rate gold-'.$operator.'-val"> '. ( ( $operator == 'pos' ) ? '+'.$difference_rate : $difference_rate ) .' </span>
+                	<span class="gold-feed-percentage gold-'.$operator.'-val">'. ( ( $operator == 'pos' ) ? '+'.$value : $value ) .'%</span>
+                </span>
+        </div>';
+
+    }
 
 }
 
