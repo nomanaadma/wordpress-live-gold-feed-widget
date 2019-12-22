@@ -1,0 +1,42 @@
+.gold-feed-container * {
+	font-size: 18px;
+}
+
+.gold-feed-container {
+    margin-left: 5px;
+}
+
+.gold-feed-container .gold-feed-rate,
+.gold-feed-container .gold-feed-difference-rate {
+    color: #000;
+}
+
+.gold-feed-container  .gold-pos-val {
+    color: #4ad064;
+}
+
+.gold-feed-container  .gold-neg-val {
+    color: #e40101;
+}
+
+.gold-feed-title {
+    color: #dca141;
+}
+.gold-feed-values-container * {
+	font-weight: bold;
+	color: #ffffff;
+}
+
+.gold-pos-val {
+	color: #ffffff;
+}
+
+.gold-neg-val {
+	color: #27b2f7;
+}
+
+.gold-feed-mark img {
+    width: 15px;
+    display: inline;
+}
+
