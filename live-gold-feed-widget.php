@@ -22,6 +22,7 @@ Class LiveFeed {
     public function __construct() {
 
 		$this->register_widget();
+        add_shortcode( 'live-Gold-Feed', array($this, 'live_gold_feed') );
 
     }
 
@@ -34,9 +35,19 @@ Class LiveFeed {
 			register_widget( 'Live_Gold_Feed_Widget' );
 		});
 
-	}
-    
+    }
+
+    /**
+     *  register the shortcode
+     */
+    public function live_gold_feed() { 
+
+        echo 'hello wordpress shortcode';
+
+    }
+       
 }
+
 
 
 // widget class
